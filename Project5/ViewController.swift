@@ -15,7 +15,10 @@ class ViewController: UITableViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(promptForAnswer))
+        //adding a left bar button item that will restart the game
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .refresh, target: self, action: #selector(startGame))
 
+        
         if let startWordsURL = Bundle.main.url(forResource: "start", withExtension: "txt") {
             if let startWords = try? String(contentsOf: startWordsURL) {
                 allWords = startWords.components(separatedBy: "\n")
@@ -28,7 +31,7 @@ class ViewController: UITableViewController {
     startGame()
     }
     
-    func startGame() {
+    @objc func startGame() {
         title = allWords.randomElement()
         usedWords.removeAll(keepingCapacity: true)
         tableView.reloadData()
@@ -49,7 +52,7 @@ class ViewController: UITableViewController {
         ac.addTextField()
 
         let submitAction = UIAlertAction(title: "Submit", style: .default) { [weak self, weak ac] _ in
-            guard let answer = ac?.textFields?[0].text else { return }
+            guard let answer = ac?.textFields?[0].text?.lowercased() else { return }
             self?.submit(answer: answer)
         }
 
@@ -71,11 +74,20 @@ class ViewController: UITableViewController {
     }
 
     func isOriginal(word: String) -> Bool {
+        if(title == word) {
+            
+            showErrorMessage(title: "Same word", message: "You cannot use the original word to gain points.")
+            
+            return false
+        }
         return !usedWords.contains(word)
     }
 
     func isReal(word: String) -> Bool {
         let checker = UITextChecker()
+        if word.count < 3 {
+            return false
+        }
             let range = NSRange(location: 0, length: word.utf16.count)
             let misspelledRange = checker.rangeOfMisspelledWord(in: word, range: range, startingAt: 0, wrap: false, language: "en")
 
@@ -111,7 +123,11 @@ class ViewController: UITableViewController {
             errorMessage = "You can't spell that word from \(title)"
         }
 
-        let ac = UIAlertController(title: errorTitle, message: errorMessage, preferredStyle: .alert)
+        showErrorMessage(title: errorTitle, message: errorMessage)
+    }
+    
+    func showErrorMessage(title: String, message: String) {
+        let ac = UIAlertController(title: title, message: message, preferredStyle: .alert)
         ac.addAction(UIAlertAction(title: "OK", style: .default))
         present(ac, animated: true)
     }
